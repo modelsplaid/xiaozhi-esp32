@@ -84,6 +84,12 @@ bool Ota::CheckVersion() {
     std::string method = data.length() > 0 ? "POST" : "GET";
     http->SetContent(std::move(data));
 
+    ESP_LOGI(TAG, "------method: %s", method.c_str());
+    ESP_LOGI(TAG, "------url: %s", url.c_str());
+    ESP_LOGI(TAG, "------data: %s", data.c_str());
+
+
+
     if (!http->Open(method, url)) {
         ESP_LOGE(TAG, "Failed to open HTTP connection");
         return false;

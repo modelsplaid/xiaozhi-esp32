@@ -25,6 +25,9 @@ static const char *TAG = "WifiBoard";
 
 WifiBoard::WifiBoard() {
     Settings settings("wifi", true);
+
+    ESP_LOGW(TAG, " ------WifiBoard::WifiBoard ---------");
+
     wifi_config_mode_ = settings.GetInt("force_ap") == 1;
     if (wifi_config_mode_) {
         ESP_LOGI(TAG, "force_ap is set to 1, reset to 0");
@@ -114,11 +117,17 @@ Http* WifiBoard::CreateHttp() {
 }
 
 WebSocket* WifiBoard::CreateWebSocket() {
+
+    ESP_LOGW(TAG, " ------Create web socket ---------");
+
     Settings settings("websocket", false);
     std::string url = settings.GetString("url");
     if (url.find("wss://") == 0) {
+
+        ESP_LOGW(TAG, " ------Create tls transport ---------");
         return new WebSocket(new TlsTransport());
     } else {
+        ESP_LOGW(TAG, " ------Create tcp transport ---------");
         return new WebSocket(new TcpTransport());
     }
     return nullptr;

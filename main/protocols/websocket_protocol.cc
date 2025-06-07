@@ -13,7 +13,18 @@
 #define TAG "WS"
 
 WebsocketProtocol::WebsocketProtocol() {
+
+    Settings settings("websocket", true);
+    settings.SetString("url", "ws://192.168.1.31:8000/xiaozhi/v1/");
+    //settings.SetString("url", "ws://192.168.1.31:8000/xiaozhi/v1/");   
+    std::string url = settings.GetString("url");
+    ESP_LOGW(TAG, "-------------------WebsocketProtocol::WebsocketProtocol()-----");
+    ESP_LOGI(TAG, "WebsocketProtocol created with URL: %s", url.c_str());
+
     event_group_handle_ = xEventGroupCreate();
+
+    // todo: work on this code
+
 }
 
 WebsocketProtocol::~WebsocketProtocol() {
@@ -65,6 +76,8 @@ bool WebsocketProtocol::SendText(const std::string& text) {
         return false;
     }
 
+    ESP_LOGW(TAG, "----------send  WEBSOCKER text: %s", text.c_str());
+    
     if (!websocket_->Send(text)) {
         ESP_LOGE(TAG, "Failed to send text: %s", text.c_str());
         SetError(Lang::Strings::SERVER_ERROR);
@@ -92,6 +105,10 @@ bool WebsocketProtocol::OpenAudioChannel() {
 
     Settings settings("websocket", false);
     std::string url = settings.GetString("url");
+    // todo: work on this code
+    ESP_LOGW(TAG, "-------------------WebsocketProtocol::OpenAudioChannel()-----");
+
+    
     std::string token = settings.GetString("token");
     int version = settings.GetInt("version");
     if (version != 0) {
@@ -115,6 +132,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
 
     websocket_->OnData([this](const char* data, size_t len, bool binary) {
         if (binary) {
+            //ESP_LOGI(TAG, "----------- pare json binary  data len : %d", int(len));
             if (on_incoming_audio_ != nullptr) {
                 if (version_ == 2) {
                     BinaryProtocol2* bp2 = (BinaryProtocol2*)data;
@@ -154,8 +172,11 @@ bool WebsocketProtocol::OpenAudioChannel() {
             auto root = cJSON_Parse(data);
             auto type = cJSON_GetObjectItem(root, "type");
             if (cJSON_IsString(type)) {
+                ESP_LOGI(TAG, "----------- pare json hello  data: %s", data);
+
                 if (strcmp(type->valuestring, "hello") == 0) {
                     ParseServerHello(root);
+                    ESP_LOGI(TAG, "----------- done pare json hello  data: %s", data);
                 } else {
                     if (on_incoming_json_ != nullptr) {
                         on_incoming_json_(root);
@@ -183,8 +204,11 @@ bool WebsocketProtocol::OpenAudioChannel() {
         return false;
     }
 
-    // Send hello message to describe the client
     auto message = GetHelloMessage();
+    ESP_LOGW(TAG, "----------sending hello message---");
+    ESP_LOGW(TAG, "Hello message: %s", message.c_str());
+
+
     if (!SendText(message)) {
         return false;
     }
@@ -205,6 +229,8 @@ bool WebsocketProtocol::OpenAudioChannel() {
 }
 
 std::string WebsocketProtocol::GetHelloMessage() {
+
+    ESP_LOGW(TAG, "----------getting hello message function---");    
     // keys: message type, version, audio_params (format, sample_rate, channels)
     cJSON* root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "type", "hello");
@@ -243,6 +269,8 @@ void WebsocketProtocol::ParseServerHello(const cJSON* root) {
         session_id_ = session_id->valuestring;
         ESP_LOGI(TAG, "Session ID: %s", session_id_.c_str());
     }
+
+    ESP_LOGW(TAG,"---------tzq goin to get audio params");
 
     auto audio_params = cJSON_GetObjectItem(root, "audio_params");
     if (cJSON_IsObject(audio_params)) {

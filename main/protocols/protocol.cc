@@ -21,6 +21,7 @@ void Protocol::OnAudioChannelClosed(std::function<void()> callback) {
 }
 
 void Protocol::OnNetworkError(std::function<void(const std::string& message)> callback) {
+
     on_network_error_ = callback;
 }
 
@@ -43,6 +44,9 @@ void Protocol::SendAbortSpeaking(AbortReason reason) {
 void Protocol::SendWakeWordDetected(const std::string& wake_word) {
     std::string json = "{\"session_id\":\"" + session_id_ + 
                       "\",\"type\":\"listen\",\"state\":\"detect\",\"text\":\"" + wake_word + "\"}";
+
+    ESP_LOGW(TAG, "--------------- wake word detected: %s", json.c_str());
+
     SendText(json);
 }
 

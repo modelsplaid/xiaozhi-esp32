@@ -13,6 +13,7 @@
 #define TAG "MQTT"
 
 MqttProtocol::MqttProtocol() {
+     ESP_LOGW(TAG, "-------------------MqttProtocol::MqttProtocol()-----");
     event_group_handle_ = xEventGroupCreate();
 }
 
@@ -28,6 +29,7 @@ MqttProtocol::~MqttProtocol() {
 }
 
 bool MqttProtocol::Start() {
+    ESP_LOGW(TAG, "-------------------MqttProtocol::Start()-----");
     return StartMqttClient(false);
 }
 
