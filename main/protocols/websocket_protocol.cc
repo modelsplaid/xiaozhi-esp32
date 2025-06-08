@@ -132,9 +132,10 @@ bool WebsocketProtocol::OpenAudioChannel() {
 
     websocket_->OnData([this](const char* data, size_t len, bool binary) {
         if (binary) {
-            //ESP_LOGI(TAG, "----------- pare json binary  data len : %d", int(len));
+            ESP_LOGI(TAG, "----------- pare json binary  data len : %d", int(len));
             if (on_incoming_audio_ != nullptr) {
                 if (version_ == 2) {
+                    ESP_LOGW(TAG, "----------- version 2");
                     BinaryProtocol2* bp2 = (BinaryProtocol2*)data;
                     bp2->version = ntohs(bp2->version);
                     bp2->type = ntohs(bp2->type);
@@ -148,6 +149,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
                         .payload = std::vector<uint8_t>(payload, payload + bp2->payload_size)
                     });
                 } else if (version_ == 3) {
+                    ESP_LOGW(TAG, "----------- version 3");
                     BinaryProtocol3* bp3 = (BinaryProtocol3*)data;
                     bp3->type = bp3->type;
                     bp3->payload_size = ntohs(bp3->payload_size);
@@ -159,6 +161,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
                         .payload = std::vector<uint8_t>(payload, payload + bp3->payload_size)
                     });
                 } else {
+                    ESP_LOGW(TAG, "----------- version not 2 3");
                     on_incoming_audio_(AudioStreamPacket{
                         .sample_rate = server_sample_rate_,
                         .frame_duration = server_frame_duration_,

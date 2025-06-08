@@ -27,6 +27,11 @@
 #define SEND_AUDIO_EVENT (1 << 1)
 #define CHECK_NEW_VERSION_DONE_EVENT (1 << 2)
 
+#define UART_PORT UART_NUM_1  // 使用 UART1
+#define TX_PIN 43
+#define RX_PIN 44
+#define BUF_SIZE (1024)       // 缓冲区大小
+
 enum AecMode {
     kAecOff,
     kAecOnDeviceSide,
@@ -79,7 +84,8 @@ public:
     void SetAecMode(AecMode mode);
     AecMode GetAecMode() const { return aec_mode_; }
     BackgroundTask* GetBackgroundTask() const { return background_task_; }
-
+    void setup_uart();
+    void uart_send_data(const char* data);
 private:
     Application();
     ~Application();

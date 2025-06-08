@@ -10,6 +10,8 @@
 #include "iot/thing_manager.h"
 #include "assets/lang_config.h"
 #include "mcp_server.h"
+#include "driver/uart.h"
+
 
 #if CONFIG_USE_AUDIO_PROCESSOR
 #include "afe_audio_processor.h"
@@ -32,6 +34,55 @@
 #include <arpa/inet.h>
 
 #define TAG "Application"
+
+
+// void setup_uart() {
+//     // UART 配置参数
+//     uart_config_t uart_config = {
+//         .baud_rate = 115200,     // 波特率
+//         .data_bits = UART_DATA_8_BITS,
+//         .parity = UART_PARITY_DISABLE,
+//         .stop_bits = UART_STOP_BITS_1,
+//         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+//         .source_clk = UART_SCLK_DEFAULT,
+//     };
+    
+//     // 安装 UART 驱动程序
+//     ESP_LOGW(TAG, " --- uart_driver_install");
+//     ESP_ERROR_CHECK(uart_driver_install(UART_PORT, BUF_SIZE * 2, 0, 0, NULL, 0));
+//     ESP_LOGW(TAG, " --- uart_param_config");
+//     ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
+//     ESP_LOGW(TAG, " --- 设置 UART 引脚");
+//     // 设置 UART 引脚 (GPIO43 为 TX, GPIO44 为 RX)
+//     ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+// }
+
+// void uart_send_data(const char* data) {
+//     // 获取数据长度
+//     const int len = strlen(data);
+    
+//     // 通过 UART 发送数据
+//     const int tx_bytes = uart_write_bytes(UART_PORT, data, len);
+    
+//     ESP_LOGI("UART", "Sent %d bytes: %s", tx_bytes, data);
+// }
+
+void uart_receive_task(void *pvParameters) {
+    uint8_t* data = (uint8_t*) malloc(BUF_SIZE);
+    
+    while(1) {
+        // 读取 UART 数据
+        const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 20 / portTICK_PERIOD_MS);
+        
+        if(rx_len > 0) {
+            data[rx_len] = '\0';  // 添加终止符
+            ESP_LOGI("UART", "Received %d bytes: %s", rx_len, data);
+        }
+    }
+    free(data);
+    vTaskDelete(NULL);
+}
+
 
 
 static const char* const STATE_STRINGS[] = {
@@ -97,6 +148,18 @@ Application::~Application() {
     }
     vEventGroupDelete(event_group_);
 }
+
+void Application::uart_send_data(const char* data) {
+    // 获取数据长度
+    const int len = strlen(data);
+    
+    // 通过 UART 发送数据
+    const int tx_bytes = uart_write_bytes(UART_PORT, data, len);
+    
+    ESP_LOGI("UART", "Sent %d bytes: %s", tx_bytes, data);
+}
+
+
 
 void Application::CheckNewVersion() {
     const int MAX_RETRY = 10;
@@ -369,12 +432,39 @@ void Application::StopListening() {
     });
 }
 
+void Application::setup_uart(){
+   // UART 配置参数
+    uart_config_t uart_config = {
+        .baud_rate = 115200,     // 波特率
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    
+    // 安装 UART 驱动程序
+    ESP_LOGW(TAG, " --- uart_driver_install");
+    ESP_ERROR_CHECK(uart_driver_install(UART_PORT, BUF_SIZE * 2, 0, 0, NULL, 0));
+    ESP_LOGW(TAG, " --- uart_param_config");
+    ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
+    ESP_LOGW(TAG, " --- 设置 UART 引脚");
+    // 设置 UART 引脚 (GPIO43 为 TX, GPIO44 为 RX)
+    ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+
+
+}
+
+
 void Application::Start() {
     auto& board = Board::GetInstance();
     SetDeviceState(kDeviceStateStarting);
 
     /* Setup the display */
     auto display = board.GetDisplay();
+
+    /* Setup UART */
+    setup_uart();
 
     /* Setup the audio codec */
     auto codec = board.GetAudioCodec();
@@ -703,8 +793,17 @@ void Application::OnClockTimer() {
     auto display = Board::GetInstance().GetDisplay();
     display->UpdateStatusBar();
 
+    const char* json_data = "{\"session_id\":\"3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b\",\"type\":\"listen\",\"text\":\"你好小智\"}";
+    uart_send_data(json_data);
+
     // Print the debug info every 10 seconds
-    if (clock_ticks_ % 20 == 0) {
+    if (clock_ticks_ % 10 == 0) {
+    
+    
+    // 示例：发送 JSON 数据
+    //const char* json_data = "{\"session_id\":\"3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b\",\"type\":\"listen\",\"text\":\"你好小智\"}";
+        //uart_send_data(json_data);
+
         // SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
         // SystemInfo::PrintTaskList();
 
@@ -720,19 +819,16 @@ void Application::OnClockTimer() {
         }
         }
 
-
         /////////////////////
-        cJSON *root = cJSON_CreateObject();
-        // if (!root) {
-        //     return ""; // Return empty string on failure
-        // }
+        auto codec = Board::GetInstance().GetAudioCodec();
+        codec->EnableOutput(true);
 
+        cJSON *root = cJSON_CreateObject();
         // Add key-value pairs to JSON
         cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
         cJSON_AddStringToObject(root, "type", "listen");
         cJSON_AddStringToObject(root, "state", "detect");
-        cJSON_AddStringToObject(root, "text", "现在几点了？"); // UTF-8 supported
-
+        cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
 
         // Convert JSON to minified string
         char *json_str = cJSON_PrintUnformatted(root);
@@ -743,6 +839,9 @@ void Application::OnClockTimer() {
 
         ESP_LOGW(TAG, "In Onclock Timer.Clock ticks: %d", clock_ticks_);
         SystemInfo::PrintHeapStats();
+
+        PlaySound(Lang::Sounds::P3_SUCCESS);
+        SetDeviceState(kDeviceStateSpeaking);
 
         // If we have synchronized server time, set the status to clock "HH:MM" if the device is idle
         if (ota_.HasServerTime()) {
