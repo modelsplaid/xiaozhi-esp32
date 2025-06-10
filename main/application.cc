@@ -35,48 +35,55 @@
 
 #define TAG "Application"
 
+int globalCounter = 0;  // Definition
 
-// void setup_uart() {
-//     // UART 配置参数
-//     uart_config_t uart_config = {
-//         .baud_rate = 115200,     // 波特率
-//         .data_bits = UART_DATA_8_BITS,
-//         .parity = UART_PARITY_DISABLE,
-//         .stop_bits = UART_STOP_BITS_1,
-//         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-//         .source_clk = UART_SCLK_DEFAULT,
-//     };
-    
-//     // 安装 UART 驱动程序
-//     ESP_LOGW(TAG, " --- uart_driver_install");
-//     ESP_ERROR_CHECK(uart_driver_install(UART_PORT, BUF_SIZE * 2, 0, 0, NULL, 0));
-//     ESP_LOGW(TAG, " --- uart_param_config");
-//     ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
-//     ESP_LOGW(TAG, " --- 设置 UART 引脚");
-//     // 设置 UART 引脚 (GPIO43 为 TX, GPIO44 为 RX)
-//     ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-// }
 
-// void uart_send_data(const char* data) {
-//     // 获取数据长度
-//     const int len = strlen(data);
-    
-//     // 通过 UART 发送数据
-//     const int tx_bytes = uart_write_bytes(UART_PORT, data, len);
-    
-//     ESP_LOGI("UART", "Sent %d bytes: %s", tx_bytes, data);
-// }
-
-void uart_receive_task(void *pvParameters) {
+void Application::uart_receive_task() {
     uint8_t* data = (uint8_t*) malloc(BUF_SIZE);
-    
+    //int uart_stats_count = 0;
+
     while(1) {
         // 读取 UART 数据
         const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 20 / portTICK_PERIOD_MS);
         
         if(rx_len > 0) {
+            globalCounter ++;
             data[rx_len] = '\0';  // 添加终止符
-            ESP_LOGI("UART", "Received %d bytes: %s", rx_len, data);
+            ESP_LOGI("UART", "---Received %d bytes: %s", rx_len, data);
+            //uart_stats_count = rx_len; 
+            //ESP_LOGI(TAG, " --- --- IsAudioChannelOpened---");
+
+            // if (!protocol_->IsAudioChannelOpened()) {
+            //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
+            //     SetDeviceState(kDeviceStateConnecting);
+            //     if (!protocol_->OpenAudioChannel()) {
+            //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
+            //         // wake_word_->StartDetection();
+            //         // return;
+            //     }else{
+            //         ESP_LOGW(TAG, " --- audio channel opened");
+            //     }
+            // }
+
+            // auto codec = Board::GetInstance().GetAudioCodec();
+            // codec->EnableOutput(true);
+
+        // //
+        // cJSON *root = cJSON_CreateObject();
+        // // Add key-value pairs to JSON
+        // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
+        // cJSON_AddStringToObject(root, "type", "listen");
+        // cJSON_AddStringToObject(root, "state", "detect");
+        // cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
+
+        // // Convert JSON to minified string
+        // char *json_str = cJSON_PrintUnformatted(root);
+        // std::string result = json_str ? json_str : "";
+
+        // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
+        // protocol_->SendText(result.c_str());
+
+
         }
     }
     free(data);
@@ -84,6 +91,36 @@ void uart_receive_task(void *pvParameters) {
 }
 
 
+void Application::uart_send_data(const char* data) {
+    // 获取数据长度
+    const int len = strlen(data);
+    
+    // 通过 UART 发送数据
+    const int tx_bytes = uart_write_bytes(UART_PORT, data, len);
+    
+    ESP_LOGI("UART", "Sent %d bytes: %s", tx_bytes, data);
+}
+
+void Application::setup_uart(){
+   // UART 配置参数
+    uart_config_t uart_config = {
+        .baud_rate = 115200,     // 波特率
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    
+    // 安装 UART 驱动程序
+    ESP_LOGW(TAG, " --- uart_driver_install");
+    ESP_ERROR_CHECK(uart_driver_install(UART_PORT, BUF_SIZE * 2, 0, 0, NULL, 0));
+    ESP_LOGW(TAG, " --- uart_param_config");
+    ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
+    ESP_LOGW(TAG, " --- 设置 UART 引脚");
+    // 设置 UART 引脚 (GPIO43 为 TX, GPIO44 为 RX)
+    ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+}
 
 static const char* const STATE_STRINGS[] = {
     "unknown",
@@ -149,15 +186,9 @@ Application::~Application() {
     vEventGroupDelete(event_group_);
 }
 
-void Application::uart_send_data(const char* data) {
-    // 获取数据长度
-    const int len = strlen(data);
-    
-    // 通过 UART 发送数据
-    const int tx_bytes = uart_write_bytes(UART_PORT, data, len);
-    
-    ESP_LOGI("UART", "Sent %d bytes: %s", tx_bytes, data);
-}
+
+
+
 
 
 
@@ -432,29 +463,6 @@ void Application::StopListening() {
     });
 }
 
-void Application::setup_uart(){
-   // UART 配置参数
-    uart_config_t uart_config = {
-        .baud_rate = 115200,     // 波特率
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_DEFAULT,
-    };
-    
-    // 安装 UART 驱动程序
-    ESP_LOGW(TAG, " --- uart_driver_install");
-    ESP_ERROR_CHECK(uart_driver_install(UART_PORT, BUF_SIZE * 2, 0, 0, NULL, 0));
-    ESP_LOGW(TAG, " --- uart_param_config");
-    ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
-    ESP_LOGW(TAG, " --- 设置 UART 引脚");
-    // 设置 UART 引脚 (GPIO43 为 TX, GPIO44 为 RX)
-    ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-
-
-}
-
 
 void Application::Start() {
     auto& board = Board::GetInstance();
@@ -465,6 +473,25 @@ void Application::Start() {
 
     /* Setup UART */
     setup_uart();
+
+    // 创建接收任务（如果需要接收数据）
+    auto uart_task_func = [](void* arg) {
+        Application* instance = static_cast<Application*>(arg);
+        instance->uart_receive_task();
+    };
+
+    BaseType_t result = xTaskCreate(
+        uart_task_func,         // Task function (lambda)
+        "uart_rx_task",         // Task name
+        RX_TASK_STACK_SIZE,     // Stack size
+        this,                   // Pass 'this' as argument
+        RX_TASK_PRIORITY,       // Priority
+        &receive_task_handle    // Task handle
+    );
+
+    if (result != pdPASS) {
+        ESP_LOGE("UART", "Failed to create receive task!");
+    } 
 
     /* Setup the audio codec */
     auto codec = board.GetAudioCodec();
@@ -795,53 +822,49 @@ void Application::OnClockTimer() {
 
     const char* json_data = "{\"session_id\":\"3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b\",\"type\":\"listen\",\"text\":\"你好小智\"}";
     uart_send_data(json_data);
+    ESP_LOGW(TAG, " +++ globalCounter: %d",globalCounter);
 
     // Print the debug info every 10 seconds
     if (clock_ticks_ % 10 == 0) {
     
-    
-    // 示例：发送 JSON 数据
-    //const char* json_data = "{\"session_id\":\"3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b\",\"type\":\"listen\",\"text\":\"你好小智\"}";
-        //uart_send_data(json_data);
+        //SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
+        //SystemInfo::PrintTaskList();
 
-        // SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
-        // SystemInfo::PrintTaskList();
-
-        if (!protocol_->IsAudioChannelOpened()) {
-        ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
-        SetDeviceState(kDeviceStateConnecting);
-        if (!protocol_->OpenAudioChannel()) {
-            ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
-            // wake_word_->StartDetection();
-            // return;
-        }else{
-            ESP_LOGW(TAG, " --- audio channel opened");
-        }
-        }
+        // if (!protocol_->IsAudioChannelOpened()) {
+        //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
+        //     SetDeviceState(kDeviceStateConnecting);
+        //     if (!protocol_->OpenAudioChannel()) {
+        //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
+        //         // wake_word_->StartDetection();
+        //         // return;
+        //     }else{
+        //         ESP_LOGW(TAG, " --- audio channel opened");
+        //     }
+        // }
 
         /////////////////////
-        auto codec = Board::GetInstance().GetAudioCodec();
-        codec->EnableOutput(true);
+        // auto codec = Board::GetInstance().GetAudioCodec();
+        // codec->EnableOutput(true);
 
-        cJSON *root = cJSON_CreateObject();
-        // Add key-value pairs to JSON
-        cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
-        cJSON_AddStringToObject(root, "type", "listen");
-        cJSON_AddStringToObject(root, "state", "detect");
-        cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
+        // cJSON *root = cJSON_CreateObject();
+        // // Add key-value pairs to JSON
+        // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
+        // cJSON_AddStringToObject(root, "type", "listen");
+        // cJSON_AddStringToObject(root, "state", "detect");
+        // cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
 
-        // Convert JSON to minified string
-        char *json_str = cJSON_PrintUnformatted(root);
-        std::string result = json_str ? json_str : "";
+        // // Convert JSON to minified string
+        // char *json_str = cJSON_PrintUnformatted(root);
+        // std::string result = json_str ? json_str : "";
 
-        ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
-        protocol_->SendText(result.c_str());
+        // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
+        // protocol_->SendText(result.c_str());
 
         ESP_LOGW(TAG, "In Onclock Timer.Clock ticks: %d", clock_ticks_);
-        SystemInfo::PrintHeapStats();
+        //SystemInfo::PrintHeapStats();
 
-        PlaySound(Lang::Sounds::P3_SUCCESS);
-        SetDeviceState(kDeviceStateSpeaking);
+        //PlaySound(Lang::Sounds::P3_SUCCESS);
+        //SetDeviceState(kDeviceStateSpeaking);
 
         // If we have synchronized server time, set the status to clock "HH:MM" if the device is idle
         if (ota_.HasServerTime()) {

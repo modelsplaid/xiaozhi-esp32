@@ -30,7 +30,9 @@
 #define UART_PORT UART_NUM_1  // 使用 UART1
 #define TX_PIN 43
 #define RX_PIN 44
-#define BUF_SIZE (1024)       // 缓冲区大小
+#define BUF_SIZE (1000)       // 缓冲区大小
+
+extern int globalCounter;  // Declaration
 
 enum AecMode {
     kAecOff,
@@ -53,6 +55,8 @@ enum DeviceState {
 
 #define OPUS_FRAME_DURATION_MS 60
 #define MAX_AUDIO_PACKETS_IN_QUEUE (2400 / OPUS_FRAME_DURATION_MS)
+
+//extern int uart_stats_count;
 
 class Application {
 public:
@@ -84,8 +88,18 @@ public:
     void SetAecMode(AecMode mode);
     AecMode GetAecMode() const { return aec_mode_; }
     BackgroundTask* GetBackgroundTask() const { return background_task_; }
+
+
+    TaskHandle_t receive_task_handle = nullptr;
+    static constexpr int RX_TASK_STACK_SIZE = 5024;
+    static constexpr int RX_TASK_PRIORITY = 10;
+
+    // UART communication
     void setup_uart();
     void uart_send_data(const char* data);
+    void uart_receive_task();
+
+
 private:
     Application();
     ~Application();
@@ -138,6 +152,9 @@ private:
     void OnClockTimer();
     void SetListeningMode(ListeningMode mode);
     void AudioLoop();
+
+
+
 };
 
 #endif // _APPLICATION_H_
