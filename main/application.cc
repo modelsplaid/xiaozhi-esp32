@@ -36,7 +36,7 @@
 #define TAG "Application"
 
 int globalCounter = 0;  // Definition
-
+bool globalGotSerialData = 0;
 
 void Application::uart_receive_task() {
     uint8_t* data = (uint8_t*) malloc(BUF_SIZE);
@@ -44,47 +44,15 @@ void Application::uart_receive_task() {
 
     while(1) {
         // 读取 UART 数据
-        const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 20 / portTICK_PERIOD_MS);
-        
+        const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 300 / portTICK_PERIOD_MS);
         if(rx_len > 0) {
             globalCounter ++;
             data[rx_len] = '\0';  // 添加终止符
             ESP_LOGI("UART", "---Received %d bytes: %s", rx_len, data);
-            //uart_stats_count = rx_len; 
-            //ESP_LOGI(TAG, " --- --- IsAudioChannelOpened---");
-
-            // if (!protocol_->IsAudioChannelOpened()) {
-            //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
-            //     SetDeviceState(kDeviceStateConnecting);
-            //     if (!protocol_->OpenAudioChannel()) {
-            //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
-            //         // wake_word_->StartDetection();
-            //         // return;
-            //     }else{
-            //         ESP_LOGW(TAG, " --- audio channel opened");
-            //     }
-            // }
-
-            // auto codec = Board::GetInstance().GetAudioCodec();
-            // codec->EnableOutput(true);
-
-        // //
-        // cJSON *root = cJSON_CreateObject();
-        // // Add key-value pairs to JSON
-        // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
-        // cJSON_AddStringToObject(root, "type", "listen");
-        // cJSON_AddStringToObject(root, "state", "detect");
-        // cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
-
-        // // Convert JSON to minified string
-        // char *json_str = cJSON_PrintUnformatted(root);
-        // std::string result = json_str ? json_str : "";
-
-        // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
-        // protocol_->SendText(result.c_str());
-
-
+        globalGotSerialData = 1;
         }
+
+        ESP_LOGI("UART", "---waiting for receive serial data");
     }
     free(data);
     vTaskDelete(NULL);
@@ -820,45 +788,52 @@ void Application::OnClockTimer() {
     auto display = Board::GetInstance().GetDisplay();
     display->UpdateStatusBar();
 
-    const char* json_data = "{\"session_id\":\"3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b\",\"type\":\"listen\",\"text\":\"你好小智\"}";
-    uart_send_data(json_data);
-    ESP_LOGW(TAG, " +++ globalCounter: %d",globalCounter);
+    if(globalGotSerialData == true){
+        globalGotSerialData = false;
+
+        const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
+        ESP_LOGW(TAG, " ====== Got serial reposens, will activate wake word and send greeting audio");
+        uart_send_data(json_data);
+
+
+        if (!protocol_->IsAudioChannelOpened()) {
+            ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
+            SetDeviceState(kDeviceStateConnecting);
+            if (!protocol_->OpenAudioChannel()) {
+                ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
+                // wake_word_->StartDetection();
+                // return;
+            }else{
+                ESP_LOGW(TAG, " --- audio channel opened");
+            }
+        }
+
+        /////////////////////
+        auto codec = Board::GetInstance().GetAudioCodec();
+        codec->EnableOutput(true);
+
+        cJSON *root = cJSON_CreateObject();
+        // Add key-value pairs to JSON
+        cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
+        cJSON_AddStringToObject(root, "type", "listen");
+        cJSON_AddStringToObject(root, "state", "detect");
+        cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
+
+        // Convert JSON to minified string
+        char *json_str = cJSON_PrintUnformatted(root);
+        std::string result = json_str ? json_str : "";
+
+        ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
+        protocol_->SendText(result.c_str());
+    }
+
+
 
     // Print the debug info every 10 seconds
-    if (clock_ticks_ % 10 == 0) {
+    if (clock_ticks_ % 20 == 0) {
     
         //SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
         //SystemInfo::PrintTaskList();
-
-        // if (!protocol_->IsAudioChannelOpened()) {
-        //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
-        //     SetDeviceState(kDeviceStateConnecting);
-        //     if (!protocol_->OpenAudioChannel()) {
-        //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
-        //         // wake_word_->StartDetection();
-        //         // return;
-        //     }else{
-        //         ESP_LOGW(TAG, " --- audio channel opened");
-        //     }
-        // }
-
-        /////////////////////
-        // auto codec = Board::GetInstance().GetAudioCodec();
-        // codec->EnableOutput(true);
-
-        // cJSON *root = cJSON_CreateObject();
-        // // Add key-value pairs to JSON
-        // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
-        // cJSON_AddStringToObject(root, "type", "listen");
-        // cJSON_AddStringToObject(root, "state", "detect");
-        // cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
-
-        // // Convert JSON to minified string
-        // char *json_str = cJSON_PrintUnformatted(root);
-        // std::string result = json_str ? json_str : "";
-
-        // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
-        // protocol_->SendText(result.c_str());
 
         ESP_LOGW(TAG, "In Onclock Timer.Clock ticks: %d", clock_ticks_);
         //SystemInfo::PrintHeapStats();

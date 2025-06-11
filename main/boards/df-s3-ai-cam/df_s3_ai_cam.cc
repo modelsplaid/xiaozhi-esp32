@@ -21,6 +21,10 @@ class DfrobotEsp32S3AiCam : public WifiBoard {
     Esp32Camera* camera_;
 
     void InitializeButtons() {
+
+
+        ESP_LOGW(TAG, "=========== tzq Initializing buttons ----------");
+
         boot_button_.OnClick([this]() {
             auto& app = Application::GetInstance();
             if (app.GetDeviceState() == kDeviceStateStarting && !WifiStation::GetInstance().IsConnected()) {

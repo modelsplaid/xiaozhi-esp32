@@ -33,6 +33,8 @@
 #define BUF_SIZE (1000)       // 缓冲区大小
 
 extern int globalCounter;  // Declaration
+extern bool globalGotSerialData;  // Declaration
+
 
 enum AecMode {
     kAecOff,
