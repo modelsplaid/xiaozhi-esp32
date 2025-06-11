@@ -44,15 +44,51 @@ void Application::uart_receive_task() {
 
     while(1) {
         // 读取 UART 数据
-        const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 300 / portTICK_PERIOD_MS);
+        const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 1000 / portTICK_PERIOD_MS);
         if(rx_len > 0) {
             globalCounter ++;
             data[rx_len] = '\0';  // 添加终止符
             ESP_LOGI("UART", "---Received %d bytes: %s", rx_len, data);
-        globalGotSerialData = 1;
+            globalGotSerialData = 1;
+
+            ///////
+            std::string wake_word="你好";
+            WakeWordInvoke(wake_word);
+
+            ///////
+            // const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
+            // ESP_LOGW(TAG, " ====== Got serial reposens, will activate wake word and send greeting audio");
+            // uart_send_data(json_data);
+            // if (!protocol_->IsAudioChannelOpened()) {
+            //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
+            //     SetDeviceState(kDeviceStateConnecting);
+            //     if (!protocol_->OpenAudioChannel()) {
+            //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
+            //         // wake_word_->StartDetection();
+            //         // return;
+            //     }else{
+            //         ESP_LOGW(TAG, " --- audio channel opened");
+            //     }
+            // }
+            // /////////////////////
+            // auto codec = Board::GetInstance().GetAudioCodec();
+            // codec->EnableOutput(true);
+            // cJSON *root = cJSON_CreateObject();
+            // // Add key-value pairs to JSON
+            // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
+            // cJSON_AddStringToObject(root, "type", "listen");
+            // cJSON_AddStringToObject(root, "state", "detect");
+            // cJSON_AddStringToObject(root, "text", "hello"); // UTF-8 supported
+            // // Convert JSON to minified string
+            // char *json_str = cJSON_PrintUnformatted(root);
+            // std::string result = json_str ? json_str : "";
+            // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
+            // protocol_->SendText(result.c_str());
+            // SetDeviceState(kDeviceStateSpeaking);
+
         }
 
-        ESP_LOGI("UART", "---waiting for receive serial data");
+        //ESP_LOGI("UART", "---waiting for receive serial data");
     }
     free(data);
     vTaskDelete(NULL);
@@ -791,40 +827,41 @@ void Application::OnClockTimer() {
     if(globalGotSerialData == true){
         globalGotSerialData = false;
 
-        const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
-        ESP_LOGW(TAG, " ====== Got serial reposens, will activate wake word and send greeting audio");
-        uart_send_data(json_data);
+        // const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
+        // ESP_LOGW(TAG, " ====== Got serial reposens, will activate wake word and send greeting audio");
+        // uart_send_data(json_data);
 
+        // if (!protocol_->IsAudioChannelOpened()) {
+        //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
+        //     SetDeviceState(kDeviceStateConnecting);
+        //     if (!protocol_->OpenAudioChannel()) {
+        //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
+        //         // wake_word_->StartDetection();
+        //         // return;
+        //     }else{
+        //         ESP_LOGW(TAG, " --- audio channel opened");
+        //     }
+        // }
 
-        if (!protocol_->IsAudioChannelOpened()) {
-            ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
-            SetDeviceState(kDeviceStateConnecting);
-            if (!protocol_->OpenAudioChannel()) {
-                ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
-                // wake_word_->StartDetection();
-                // return;
-            }else{
-                ESP_LOGW(TAG, " --- audio channel opened");
-            }
-        }
+        // /////////////////////
+        // auto codec = Board::GetInstance().GetAudioCodec();
+        // codec->EnableOutput(true);
 
-        /////////////////////
-        auto codec = Board::GetInstance().GetAudioCodec();
-        codec->EnableOutput(true);
+        // cJSON *root = cJSON_CreateObject();
+        // // Add key-value pairs to JSON
+        // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
+        // cJSON_AddStringToObject(root, "type", "listen");
+        // cJSON_AddStringToObject(root, "state", "detect");
+        // cJSON_AddStringToObject(root, "text", "hello"); // UTF-8 supported
 
-        cJSON *root = cJSON_CreateObject();
-        // Add key-value pairs to JSON
-        cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
-        cJSON_AddStringToObject(root, "type", "listen");
-        cJSON_AddStringToObject(root, "state", "detect");
-        cJSON_AddStringToObject(root, "text", "重复下面一句话： 小朋友你吃饭了吗？"); // UTF-8 supported
+        // // Convert JSON to minified string
+        // char *json_str = cJSON_PrintUnformatted(root);
+        // std::string result = json_str ? json_str : "";
 
-        // Convert JSON to minified string
-        char *json_str = cJSON_PrintUnformatted(root);
-        std::string result = json_str ? json_str : "";
+        // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
+        // protocol_->SendText(result.c_str());
 
-        ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
-        protocol_->SendText(result.c_str());
+        // SetDeviceState(kDeviceStateSpeaking);
     }
 
 
@@ -839,7 +876,7 @@ void Application::OnClockTimer() {
         //SystemInfo::PrintHeapStats();
 
         //PlaySound(Lang::Sounds::P3_SUCCESS);
-        //SetDeviceState(kDeviceStateSpeaking);
+
 
         // If we have synchronized server time, set the status to clock "HH:MM" if the device is idle
         if (ota_.HasServerTime()) {
