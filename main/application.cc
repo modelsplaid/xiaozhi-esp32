@@ -38,6 +38,20 @@
 int globalCounter = 0;  // Definition
 bool globalGotSerialData = 0;
 
+static const char* const STATE_STRINGS[] = {
+    "unknown",
+    "starting",
+    "configuring",
+    "idle",
+    "connecting",
+    "listening",
+    "speaking",
+    "upgrading",
+    "activating",
+    "fatal_error",
+    "invalid_state"
+};
+
 void Application::uart_receive_task() {
     uint8_t* data = (uint8_t*) malloc(BUF_SIZE);
     //int uart_stats_count = 0;
@@ -51,10 +65,18 @@ void Application::uart_receive_task() {
             ESP_LOGI("UART", "---Received %d bytes: %s", rx_len, data);
             globalGotSerialData = 1;
 
-            ///////
+            ESP_LOGW(TAG, "--- get deviece STATE: %s", STATE_STRINGS[device_state_]);
             // SetDeviceState(kDeviceStateActivating);
-            std::string wake_word="讲一个后裔射日的故事，故事不少于800字";
+            std::string wake_word="讲一个嫦娥奔月的故事";
+
+            std::string str(reinterpret_cast<const char*>(data), rx_len+1);
+            std::string str2= "。" ;
+            str.append(str);
+
+            // to: check wake_word, and sr same, the difference?
+
             WakeWordInvoke(wake_word);
+            //WakeWordInvoke(wake_word);
 
             ///////
             // const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
@@ -127,19 +149,7 @@ void Application::setup_uart(){
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 }
 
-static const char* const STATE_STRINGS[] = {
-    "unknown",
-    "starting",
-    "configuring",
-    "idle",
-    "connecting",
-    "listening",
-    "speaking",
-    "upgrading",
-    "activating",
-    "fatal_error",
-    "invalid_state"
-};
+
 
 Application::Application() {
     event_group_ = xEventGroupCreate();
@@ -544,8 +554,14 @@ void Application::Start() {
 
     // Check for new firmware version or get the MQTT broker address
     //CheckNewVersion();
+
     xEventGroupSetBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT);
-    SetDeviceState(kDeviceStateActivating);
+    //SetDeviceState(kDeviceStateActivating); //kDeviceStateIdle
+    SetDeviceState(kDeviceStateIdle);
+
+    // todo: 
+    // todo: check the state in uart, if SetDeviceState not called
+    // todo
 
     // Initialize the protocol
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
