@@ -17,6 +17,8 @@
 #define TAG "MCP"
 
 McpServer::McpServer() {
+
+        ESP_LOGW(TAG, "======== init of McpServer()------");
 }
 
 McpServer::~McpServer() {
@@ -43,6 +45,7 @@ void McpServer::AddCommonTools() {
             return board.GetDeviceStatusJson();
         });
 
+    ESP_LOGW(TAG, "========tzq tzq Add tool . set volume------");
     AddTool("self.audio_speaker.set_volume", 
         "Set the volume of the audio speaker. If the current volume is unknown, you must call `self.get_device_status` tool first and then call this tool.",
         PropertyList({

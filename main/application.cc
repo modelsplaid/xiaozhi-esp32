@@ -69,13 +69,13 @@ void Application::uart_receive_task() {
             // SetDeviceState(kDeviceStateActivating);
             std::string wake_word="讲一个嫦娥奔月的故事";
 
-            std::string str(reinterpret_cast<const char*>(data), rx_len+1);
+            std::string str(reinterpret_cast<const char*>(data), rx_len);
             std::string str2= "。" ;
-            str.append(str);
+            str.append(str2);
 
-            // to: check wake_word, and sr same, the difference?
-
-            WakeWordInvoke(wake_word);
+            // to: check wake_word, and sr same, the differece?
+            ESP_LOGI("UART", "---wake word: %s", str.c_str());
+            WakeWordInvoke(str);
             //WakeWordInvoke(wake_word);
 
             ///////
