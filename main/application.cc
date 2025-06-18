@@ -60,6 +60,11 @@ void Application::uart_receive_task() {
         // 读取 UART 数据
         const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 1000 / portTICK_PERIOD_MS);
         if(rx_len > 0) {
+            auto camera = Board::GetInstance().GetCamera();
+            camera->SetExplainUrl("http://192.168.1.31:5000/explain","tzq 123");
+            camera->Capture();
+            camera->Explain("hello tzq");
+
             globalCounter ++;
             data[rx_len] = '\0';  // 添加终止符
             ESP_LOGI("UART", "---Received %d bytes: %s", rx_len, data);
@@ -74,40 +79,10 @@ void Application::uart_receive_task() {
             str.append(str2);
 
             // to: check wake_word, and sr same, the differece?
-            ESP_LOGI("UART", "---wake word: %s", str.c_str());
-            WakeWordInvoke(str);
+            //ESP_LOGI("UART", "---wake word: %s", str.c_str());
+            //WakeWordInvoke(str);
             //WakeWordInvoke(wake_word);
 
-            ///////
-            // const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
-            // ESP_LOGW(TAG, " ====== Got serial reposens, will activate wake word and send greeting audio");
-            // uart_send_data(json_data);
-            // if (!protocol_->IsAudioChannelOpened()) {
-            //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
-            //     SetDeviceState(kDeviceStateConnecting);
-            //     if (!protocol_->OpenAudioChannel()) {
-            //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
-            //         // wake_word_->StartDetection();
-            //         // return;
-            //     }else{
-            //         ESP_LOGW(TAG, " --- audio channel opened");
-            //     }
-            // }
-            // /////////////////////
-            // auto codec = Board::GetInstance().GetAudioCodec();
-            // codec->EnableOutput(true);
-            // cJSON *root = cJSON_CreateObject();
-            // // Add key-value pairs to JSON
-            // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
-            // cJSON_AddStringToObject(root, "type", "listen");
-            // cJSON_AddStringToObject(root, "state", "detect");
-            // cJSON_AddStringToObject(root, "text", "hello"); // UTF-8 supported
-            // // Convert JSON to minified string
-            // char *json_str = cJSON_PrintUnformatted(root);
-            // std::string result = json_str ? json_str : "";
-            // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
-            // protocol_->SendText(result.c_str());
-            // SetDeviceState(kDeviceStateSpeaking);
 
         }
 
@@ -253,6 +228,8 @@ void Application::CheckNewVersion() {
             display->SetChatMessage("system", message.c_str());
 
             auto& board = Board::GetInstance();
+
+
             board.SetPowerSaveMode(false);
             wake_word_->StopDetection();
             // 预先关闭音频输出，避免升级过程有音频操作
@@ -481,6 +458,9 @@ void Application::StopListening() {
 
 void Application::Start() {
     auto& board = Board::GetInstance();
+
+    //board = Board::GetInstance();
+
     SetDeviceState(kDeviceStateStarting);
 
     /* Setup the display */
@@ -554,14 +534,13 @@ void Application::Start() {
 
     // Check for new firmware version or get the MQTT broker address
     //CheckNewVersion();
+    ESP_LOGW(TAG, "=========== start to get camera---");
+
+
 
     xEventGroupSetBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT);
     //SetDeviceState(kDeviceStateActivating); //kDeviceStateIdle
     SetDeviceState(kDeviceStateIdle);
-
-    // todo: 
-    // todo: check the state in uart, if SetDeviceState not called
-    // todo
 
     // Initialize the protocol
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
@@ -832,6 +811,9 @@ void Application::Start() {
 
     SystemInfo::PrintHeapStats();
     
+
+
+
     ESP_LOGW(TAG, "--- going to MainEventLoop() ");
     // Enter the main event loop
     MainEventLoop();
@@ -887,7 +869,7 @@ void Application::OnClockTimer() {
 
     // Print the debug info every 10 seconds
     if (clock_ticks_ % 20 == 0) {
-    
+
         //SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
         //SystemInfo::PrintTaskList();
 
@@ -895,6 +877,9 @@ void Application::OnClockTimer() {
         //SystemInfo::PrintHeapStats();
 
         //PlaySound(Lang::Sounds::P3_SUCCESS);
+
+        ESP_LOGI(TAG, "++++++Free heap: %d", int(esp_get_free_heap_size()));
+        ESP_LOGI(TAG, "++++++Largest free block: %d", int(heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT)));
 
 
         // If we have synchronized server time, set the status to clock "HH:MM" if the device is idle

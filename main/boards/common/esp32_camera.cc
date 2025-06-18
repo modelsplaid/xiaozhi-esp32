@@ -85,6 +85,8 @@ void Esp32Camera::SetExplainUrl(const std::string& url, const std::string& token
 }
 
 bool Esp32Camera::Capture() {
+
+    ESP_LOGW(TAG, "****** Camera capture start******");
     if (encoder_thread_.joinable()) {
         encoder_thread_.join();
     }
@@ -184,16 +186,27 @@ bool Esp32Camera::SetVFlip(bool enabled) {
  * @warning 如果摄像头缓冲区为空或网络连接失败，将返回错误信息
  */
 std::string Esp32Camera::Explain(const std::string& question) {
+
+    ESP_LOGW(TAG, "--- start explain");
+
     if (explain_url_.empty()) {
         return "{\"success\": false, \"message\": \"Image explain URL or token is not set\"}";
     }
 
+    ESP_LOGW(TAG, "--- explain_url_: %s",explain_url_.c_str());
+
     // 创建局部的 JPEG 队列, 40 entries is about to store 512 * 40 = 20480 bytes of JPEG data
+    ESP_LOGW(TAG, "--- sizeof(JpegChunk): %d",int(sizeof(JpegChunk)));
+
     QueueHandle_t jpeg_queue = xQueueCreate(40, sizeof(JpegChunk));
+
+    ESP_LOGW(TAG, "--- jpeg_queue ");
     if (jpeg_queue == nullptr) {
         ESP_LOGE(TAG, "Failed to create JPEG queue");
         return "{\"success\": false, \"message\": \"Failed to create JPEG queue\"}";
     }
+
+     ESP_LOGW(TAG, "--- encoder_thread_");
 
     // We spawn a thread to encode the image to JPEG
     encoder_thread_ = std::thread([this, jpeg_queue]() {
@@ -209,6 +222,7 @@ std::string Esp32Camera::Explain(const std::string& question) {
         }, jpeg_queue);
     });
 
+    ESP_LOGW(TAG, "--- create http client");
     auto http = Board::GetInstance().CreateHttp();
     // 构造multipart/form-data请求体
     std::string boundary = "----ESP32_CAMERA_BOUNDARY";
@@ -242,6 +256,8 @@ std::string Esp32Camera::Explain(const std::string& question) {
     if (!http->Open("POST", explain_url_)) {
         ESP_LOGE(TAG, "Failed to connect to explain URL");
         // Clear the queue
+
+        ESP_LOGW(TAG, "--- encoder_thread_.join()");
         encoder_thread_.join();
         JpegChunk chunk;
         while (xQueueReceive(jpeg_queue, &chunk, portMAX_DELAY) == pdPASS) {
@@ -254,14 +270,15 @@ std::string Esp32Camera::Explain(const std::string& question) {
         vQueueDelete(jpeg_queue);
         return "{\"success\": false, \"message\": \"Failed to connect to explain URL\"}";
     }
-    
+        ESP_LOGW(TAG, "--- write quesiont ");
     // 第一块：question字段
     http->Write(question_field.c_str(), question_field.size());
     
+         ESP_LOGW(TAG, "--- write file header  ");
     // 第二块：文件字段头部
     http->Write(file_header.c_str(), file_header.size());
     
-    // 第三块：JPEG数据
+     // 第三块：JPEG数据
     size_t total_sent = 0;
     while (true) {
         JpegChunk chunk;
@@ -291,9 +308,12 @@ std::string Esp32Camera::Explain(const std::string& question) {
         ESP_LOGE(TAG, "Failed to upload photo, status code: %d", http->GetStatusCode());
         return "{\"success\": false, \"message\": \"Failed to upload photo\"}";
     }
+    ESP_LOGW(TAG, "--- done uplad photo, status code: %d", http->GetStatusCode());
 
     std::string result = http->ReadAll();
     http->Close();
+
+    ESP_LOGW(TAG, "--- closed http client, result: %s", result.c_str());
 
     ESP_LOGI(TAG, "Explain image size=%dx%d, compressed size=%d, question=%s\n%s", fb_->width, fb_->height, total_sent, question.c_str(), result.c_str());
     return result;

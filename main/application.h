@@ -93,13 +93,19 @@ public:
 
 
     TaskHandle_t receive_task_handle = nullptr;
-    static constexpr int RX_TASK_STACK_SIZE = 5024;
+    static constexpr int RX_TASK_STACK_SIZE = 50240;
     static constexpr int RX_TASK_PRIORITY = 10;
+    // TaskHandle_t receive_task_handle = nullptr;
+    // static constexpr int RX_TASK_STACK_SIZE = 50;
+    // static constexpr int RX_TASK_PRIORITY = 10;
 
     // UART communication
     void setup_uart();
     void uart_send_data(const char* data);
     void uart_receive_task();
+
+    Camera*  camera;
+    //Board& board;
 
 
 private:
