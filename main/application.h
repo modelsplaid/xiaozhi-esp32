@@ -91,7 +91,7 @@ public:
     AecMode GetAecMode() const { return aec_mode_; }
     BackgroundTask* GetBackgroundTask() const { return background_task_; }
 
-
+    
     TaskHandle_t receive_task_handle = nullptr;
     static constexpr int RX_TASK_STACK_SIZE = 5024;
     static constexpr int RX_TASK_PRIORITY = 10;
@@ -105,6 +105,7 @@ public:
 private:
     Application();
     ~Application();
+    void log_hex_array_fixed(const char* tag, const uint8_t* array, size_t length);
 
     std::unique_ptr<WakeWord> wake_word_;
     std::unique_ptr<AudioProcessor> audio_processor_;

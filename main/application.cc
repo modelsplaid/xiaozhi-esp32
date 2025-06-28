@@ -52,66 +52,53 @@ static const char* const STATE_STRINGS[] = {
     "invalid_state"
 };
 
+void Application::log_hex_array_fixed(const char* tag, const uint8_t* array, size_t length) {
+    // Maximum 256 bytes * 3 = 768 bytes + null terminator
+    char buffer[769] = {0};
+    char* ptr = buffer;
+
+    for (size_t i = 0; i < length && (ptr - buffer) < sizeof(buffer) - 3; i++) {
+        ptr += snprintf(ptr, sizeof(buffer) - (ptr - buffer), "%02x" PRIx8 " ", array[i]);
+    }
+    printf(buffer);
+    ESP_LOGI(tag, "Hex array: %s", buffer);
+
+    for (size_t i = 0; i < length; i++) {
+        printf("array[%d] = 0x%02x\n", i, array[i]);
+    }
+}
+
 void Application::uart_receive_task() {
     uint8_t* data = (uint8_t*) malloc(BUF_SIZE);
+    std::string wake_word="随机播放一个音乐";
     //int uart_stats_count = 0;
 
     while(1) {
         // 读取 UART 数据
         const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 1000 / portTICK_PERIOD_MS);
+        if(rx_len == 23){
+            if(data[5]==7){
+                wake_word="讲一个嫦娥奔月的故事";
+                ESP_LOGW("UART", "---start to speak story");
+            }
+            
+            if(data[5]==8){
+                wake_word="播放音乐：儿歌我的好妈妈";
+                ESP_LOGW("UART", "---start to play music");
+            }
+
+        }
+        
         if(rx_len > 0) {
             globalCounter ++;
             data[rx_len] = '\0';  // 添加终止符
-            ESP_LOGI("UART", "---Received %d bytes: %s", rx_len, data);
-            globalGotSerialData = 1;
+            ESP_LOGI("UART", "---Received %d bytes", rx_len);
+
+            log_hex_array_fixed("UART",data,rx_len);
 
             ESP_LOGW(TAG, "--- get deviece STATE: %s", STATE_STRINGS[device_state_]);
-            // SetDeviceState(kDeviceStateActivating);
-            std::string wake_word="讲一个嫦娥奔月的故事";
-
-            std::string str(reinterpret_cast<const char*>(data), rx_len);
-            std::string str2= "。" ;
-            str.append(str2);
-
-            // to: check wake_word, and sr same, the differece?
-            ESP_LOGI("UART", "---wake word: %s", str.c_str());
-            WakeWordInvoke(str);
-            //WakeWordInvoke(wake_word);
-
-            ///////
-            // const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
-            // ESP_LOGW(TAG, " ====== Got serial reposens, will activate wake word and send greeting audio");
-            // uart_send_data(json_data);
-            // if (!protocol_->IsAudioChannelOpened()) {
-            //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
-            //     SetDeviceState(kDeviceStateConnecting);
-            //     if (!protocol_->OpenAudioChannel()) {
-            //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
-            //         // wake_word_->StartDetection();
-            //         // return;
-            //     }else{
-            //         ESP_LOGW(TAG, " --- audio channel opened");
-            //     }
-            // }
-            // /////////////////////
-            // auto codec = Board::GetInstance().GetAudioCodec();
-            // codec->EnableOutput(true);
-            // cJSON *root = cJSON_CreateObject();
-            // // Add key-value pairs to JSON
-            // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
-            // cJSON_AddStringToObject(root, "type", "listen");
-            // cJSON_AddStringToObject(root, "state", "detect");
-            // cJSON_AddStringToObject(root, "text", "hello"); // UTF-8 supported
-            // // Convert JSON to minified string
-            // char *json_str = cJSON_PrintUnformatted(root);
-            // std::string result = json_str ? json_str : "";
-            // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
-            // protocol_->SendText(result.c_str());
-            // SetDeviceState(kDeviceStateSpeaking);
-
+            WakeWordInvoke(wake_word);
         }
-
-        //ESP_LOGI("UART", "---waiting for receive serial data");
     }
     free(data);
     vTaskDelete(NULL);
@@ -132,6 +119,7 @@ void Application::setup_uart(){
    // UART 配置参数
     uart_config_t uart_config = {
         .baud_rate = 115200,     // 波特率
+        //.baud_rate = 9600,     // 波特率        
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
@@ -843,59 +831,13 @@ void Application::OnClockTimer() {
     auto display = Board::GetInstance().GetDisplay();
     display->UpdateStatusBar();
 
-    if(globalGotSerialData == true){
-        globalGotSerialData = false;
-
-        // const char* json_data = "Got serial reposens, will activate wake word and send greeting audio";
-        // ESP_LOGW(TAG, " ====== Got serial reposens, will activate wake word and send greeting audio");
-        // uart_send_data(json_data);
-
-        // if (!protocol_->IsAudioChannelOpened()) {
-        //     ESP_LOGW(TAG, " --- audio channel is not opened, try to open it");
-        //     SetDeviceState(kDeviceStateConnecting);
-        //     if (!protocol_->OpenAudioChannel()) {
-        //         ESP_LOGW(TAG, " --- Failed to open audio channel start detection ");
-        //         // wake_word_->StartDetection();
-        //         // return;
-        //     }else{
-        //         ESP_LOGW(TAG, " --- audio channel opened");
-        //     }
-        // }
-
-        // /////////////////////
-        // auto codec = Board::GetInstance().GetAudioCodec();
-        // codec->EnableOutput(true);
-
-        // cJSON *root = cJSON_CreateObject();
-        // // Add key-value pairs to JSON
-        // cJSON_AddStringToObject(root, "session_id", "3974cf9f-cb9c-4c11-b595-5da6fc5d9f5b");
-        // cJSON_AddStringToObject(root, "type", "listen");
-        // cJSON_AddStringToObject(root, "state", "detect");
-        // cJSON_AddStringToObject(root, "text", "hello"); // UTF-8 supported
-
-        // // Convert JSON to minified string
-        // char *json_str = cJSON_PrintUnformatted(root);
-        // std::string result = json_str ? json_str : "";
-
-        // ESP_LOGW(TAG, " --- print cjson: %s",result.c_str());
-        // protocol_->SendText(result.c_str());
-
-        // SetDeviceState(kDeviceStateSpeaking);
-    }
-
-
-
     // Print the debug info every 10 seconds
     if (clock_ticks_ % 20 == 0) {
     
         //SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
         //SystemInfo::PrintTaskList();
-
-        ESP_LOGW(TAG, "In Onclock Timer.Clock ticks: %d", clock_ticks_);
         //SystemInfo::PrintHeapStats();
-
         //PlaySound(Lang::Sounds::P3_SUCCESS);
-
 
         // If we have synchronized server time, set the status to clock "HH:MM" if the device is idle
         if (ota_.HasServerTime()) {
