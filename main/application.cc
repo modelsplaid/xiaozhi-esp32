@@ -77,8 +77,9 @@ void Application::uart_receive_task() {
         // 读取 UART 数据
         const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 1000 / portTICK_PERIOD_MS);
         if(rx_len == 23){
+            SetDeviceState(kDeviceStateIdle);
             if(data[5]==7){
-                wake_word="讲一个嫦娥奔月的故事";
+                wake_word="讲一个嫦娥奔月的故事,要求故事内容真实，生动有趣。不要篡改原版故事内容";
                 ESP_LOGW("UART", "---start to speak story");
             }
             
@@ -90,14 +91,22 @@ void Application::uart_receive_task() {
         }
         
         if(rx_len > 0) {
-            globalCounter ++;
+            ESP_LOGW("UART", "---Received %d bytes", rx_len);
+
             data[rx_len] = '\0';  // 添加终止符
-            ESP_LOGI("UART", "---Received %d bytes", rx_len);
 
             log_hex_array_fixed("UART",data,rx_len);
 
             ESP_LOGW(TAG, "--- get deviece STATE: %s", STATE_STRINGS[device_state_]);
-            WakeWordInvoke(wake_word);
+
+            if(GetDeviceState() == kDeviceStateIdle){
+                TriggerWakeWord(wake_word);
+
+            }else{
+
+                WakeWordInvoke(wake_word);
+            }
+
         }
     }
     free(data);
@@ -1216,6 +1225,88 @@ void Application::SetAecMode(AecMode mode) {
         // If the AEC mode is changed, close the audio channel
         if (protocol_ && protocol_->IsAudioChannelOpened()) {
             protocol_->CloseAudioChannel();
+        }
+    });
+}
+
+void Application::TriggerWakeWord(const std::string& wake_word) {
+    Schedule([this, wake_word](){
+
+        ESP_LOGW(TAG," +++ IN TRIGGEREWAKEWORD, CURRENT STATE: %s", STATE_STRINGS[device_state_]);
+        if(device_state_== kDeviceStateIdle){
+            ESP_LOGI(TAG, "+++ in TriggerWakeWord(): In idle state. sending wake word, setting state to kDeviceStateConnecting");
+
+            SetDeviceState(kDeviceStateConnecting);
+            
+            // 尝试打开音频通道，最多重试3次
+            bool channel_opened = false;
+            for(int i = 0; i < 3 && !channel_opened; i++) {
+                if(protocol_->OpenAudioChannel()) {
+                    channel_opened = true;
+                } else {
+                    ESP_LOGW(TAG, "Failed to open audio channel, retry %d", i + 1);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                }
+            }
+            
+            if(!channel_opened) {
+                ESP_LOGE(TAG, "Failed to open audio channel after retries");
+                SetDeviceState(kDeviceStateIdle);
+                return;
+            }
+            
+            // 等待音频通道完全打开
+            vTaskDelay(pdMS_TO_TICKS(200));
+            
+            // 确保音频输出已启用
+            auto codec = Board::GetInstance().GetAudioCodec();
+            codec->EnableOutput(true);
+            
+            // 播放唤醒音效
+            ResetDecoder();
+            PlaySound(Lang::Sounds::P3_POPUP);
+            
+            // 等待音频队列清空
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                audio_decode_cv_.wait(lock, [this]() {
+                    return audio_decode_queue_.empty();
+                });
+            }
+            background_task_->WaitForCompletion();
+            
+            // 再次确保音频输出已启用
+            codec->EnableOutput(true);
+            
+            protocol_->SendWakeWordDetected(wake_word);
+            ESP_LOGI(TAG, "Wake word triggered:%s",wake_word.c_str());
+            SetDeviceState(kDeviceStateListening);
+        }else if(device_state_ == kDeviceStateSpeaking){
+            ESP_LOGI(TAG, "+++ in TriggerWakeWord(): In kDeviceStateSpeaking.  AbortSpeaking(kAbortReasonWakeWordDetected);");
+            AbortSpeaking(kAbortReasonWakeWordDetected);
+        }else{
+
+            // 确保音频输出已启用
+            auto codec = Board::GetInstance().GetAudioCodec();
+            codec->EnableOutput(true);
+            
+            
+            ESP_LOGI(TAG, "+++ in TriggerWakeWord(): In other state. start to speaking: ");
+           // 播放唤醒音效
+            ResetDecoder();
+            PlaySound(Lang::Sounds::P3_POPUP);
+            
+            // 等待音频队列清空
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                audio_decode_cv_.wait(lock, [this]() {
+                    return audio_decode_queue_.empty();
+                });
+            }
+            background_task_->WaitForCompletion();
+            
+            // 再次确保音频输出已启用
+            codec->EnableOutput(true);
         }
     });
 }

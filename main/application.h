@@ -101,6 +101,7 @@ public:
     void uart_send_data(const char* data);
     void uart_receive_task();
 
+    void TriggerWakeWord(const std::string& wake_word);
 
 private:
     Application();
