@@ -77,15 +77,177 @@ void Application::uart_receive_task() {
         // 读取 UART 数据
         const int rx_len = uart_read_bytes(UART_PORT, data, BUF_SIZE - 1, 1000 / portTICK_PERIOD_MS);
         if(rx_len == 23){
+            // SetDeviceState(kDeviceStateIdle);
+            // if(data[5]==7){
+            //     wake_word="讲一个嫦娥奔月的故事,要求故事内容真实，生动有趣。不要篡改原版故事内容";
+            //     ESP_LOGW("UART", "---start to speak story");
+            // }
+            // if(data[5]==8){
+            //     wake_word="播放音乐：儿歌我的好妈妈";
+            //     ESP_LOGW("UART", "---start to play music");
+            // }
+
             SetDeviceState(kDeviceStateIdle);
-            if(data[5]==7){
-                wake_word="讲一个嫦娥奔月的故事,要求故事内容真实，生动有趣。不要篡改原版故事内容";
-                ESP_LOGW("UART", "---start to speak story");
-            }
-            
-            if(data[5]==8){
-                wake_word="播放音乐：儿歌我的好妈妈";
-                ESP_LOGW("UART", "---start to play music");
+            switch (data[5]) {
+                case 1:
+                    wake_word = "播放音乐:儿歌爱护小树苗";
+                    break;
+                case 2:
+                    wake_word = "播放音乐:儿歌打电话";
+                    break;
+                case 3:
+                    wake_word = "播放音乐:儿歌大公鸡老母鸡";
+                    break;
+                case 4:
+                    wake_word = "播放音乐:儿歌大象先生";
+                    break;
+                case 5:
+                    wake_word = "播放音乐:儿歌荡秋千";
+                    break;
+                case 6:
+                    wake_word = "播放音乐:儿歌分果果";
+                    break;
+                case 7:
+                    wake_word = "播放音乐:儿歌蝴蝶";
+                    break;
+                case 8:
+                    wake_word = "播放音乐:儿歌交通规则歌";
+                    break;
+               case 9:
+                    wake_word = "播放音乐:儿歌快乐的歌唱家";
+                    break;
+               case 10:
+                    wake_word = "播放音乐:儿歌快乐音乐会";
+                    break;
+               case 11:
+                    wake_word = "播放音乐:儿歌玩具国";
+                    break;
+               case 12:
+                    wake_word = "播放音乐:儿歌我的好妈妈";
+                    break;
+               case 13:
+                    wake_word = "播放音乐:儿歌我的好叔叔";
+                    break;
+               case 14:
+                    wake_word = "播放音乐:儿歌我是一粒米";
+                    break;
+               case 15:
+                    wake_word = "播放音乐:儿歌我是一辆垃圾车";
+                    break;
+               case 16:
+                    wake_word = "播放音乐:儿歌我有一双小小手";
+                    break;
+               case 17:
+                    wake_word = "播放音乐:儿歌小毛驴";
+                    break;
+               case 18:
+                    wake_word = "播放音乐:儿歌萤火虫";
+                    break;
+               case 19:
+                    wake_word = "播放音乐:廉波老矣，尚能饭否";
+                    break;
+               case 20:
+                    wake_word = "播放音乐:两只老虎";
+                    break;      
+               case 21:
+                    wake_word = "播放音乐:一念千年_国风版";
+                    break;  
+               case 22:
+                    wake_word = "播放音乐:中秋月";
+                    break;            
+            ////////////////////////////////////////////////////////////////////////故事
+               case 100:
+                    wake_word = "讲一个故事：狼来了。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;                       
+               case 101:
+                    wake_word = "讲一个故事：美女与野兽。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;                       
+               case 102:
+                    wake_word = "讲一个故事：叶公好龙。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 103:
+                    wake_word = "讲一个故事：愚公移山。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 104:
+                    wake_word = "讲一个故事：东郭先生和狼。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 105:
+                    wake_word = "讲一个故事：小猫钓鱼。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 106:
+                    wake_word = "讲一个故事：丑小鸭。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 107:
+                    wake_word = "讲一个故事：小蝌蚪找妈妈。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 108:
+                    wake_word = "讲一个故事：皇帝的新衣。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 109:
+                    wake_word = "讲一个故事：青蛙王子。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 110:
+                    wake_word = "讲一个故事：龟兔赛跑。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 111:
+                    wake_word = "讲一个故事：小红帽。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 112:
+                    wake_word = "讲一个故事：天鹅王子。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 113:
+                    wake_word = "讲一个故事：灰姑娘。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;   
+               case 114:
+                    wake_word = "讲一个故事：乌鸦喝水。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;                                                                                                       
+               case 115:
+                    wake_word = "讲一个故事：三只小猪盖房子。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;                                                                                                       
+                case 116:
+                    wake_word = "讲一个故事：狐狸和葡萄。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+
+
+                case 117:
+                    wake_word = "讲一个故事：趵突泉的传说。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 118:
+                    wake_word = "讲一个故事：拇指姑娘。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 119:
+                    wake_word = "讲一个故事：公主与樵夫的女儿。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 120:
+                    wake_word = "讲一个故事：守株待兔。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 121:
+                    wake_word = "讲一个故事：铁杵成针。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 122:
+                    wake_word = "讲一个故事：盲人摸象。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 123:
+                    wake_word = "讲一个故事：神笔马良。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 124:
+                    wake_word = "讲一个故事：孔融让梨。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 125:
+                    wake_word = "讲一个故事：刻舟求剑。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 126:
+                    wake_word = "讲一个故事：后羿射日。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 127:
+                    wake_word = "讲一个故事：亡羊补牢。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                case 128:
+                    wake_word = "讲一个故事：蚂蚁搬家。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
+                    break;    
+                    
+                default:
+                    wake_word = "讲一个故事：狼来了。 要求：故事内容真实，生动有趣。不要篡改原版故事内容，面向3岁的小朋友。";
             }
 
         }
@@ -145,8 +307,6 @@ void Application::setup_uart(){
     // 设置 UART 引脚 (GPIO43 为 TX, GPIO44 为 RX)
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 }
-
-
 
 Application::Application() {
     event_group_ = xEventGroupCreate();

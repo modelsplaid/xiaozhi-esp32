@@ -15,7 +15,7 @@
 WebsocketProtocol::WebsocketProtocol() {
 
     Settings settings("websocket", true);
-    settings.SetString("url", "ws://192.168.1.31:8000/xiaozhi/v1/");
+    settings.SetString("url", "ws://192.168.1.4:8000/xiaozhi/v1/");
     //settings.SetString("url", "ws://192.168.1.31:8000/xiaozhi/v1/");   
     std::string url = settings.GetString("url");
     ESP_LOGW(TAG, "-------------------WebsocketProtocol::WebsocketProtocol()-----");
